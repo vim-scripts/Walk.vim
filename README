@@ -1,0 +1,80 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=798
+
+This plugin intends to provide facilities to manage sets of files. For
+example :
+. to create files from visited directory trees and files
+. to apply Vim commands on opened files
+In fact, it autorizes files and dirs manipulation in many ways
+
+As this plugin can manage many parameters, i decided to put these parameters
+in an ini file. Doing so allows you to deal with many mass treatments.
+In this ini file, you can specify
+. a set of root dirs which trees will be visited. For Each root dir, you can
+  define other parameters you estimate useful
+. Parameters that contain strings to be written in the outfile :
+  . at begining and end of the file (can be connect string for command
+    files)
+  . entering and going out the root dirs
+  . entering and going out the visited dirs
+  . before and after the files found
+  These parameters can contain vim commands (between {{...}}) so you can do
+  whatever you want with the file names
+. You also have parameters that define
+  . a wildcard to filter the files
+  . a vim command to apply to the files found
+    This command may be written in the iniFile but may also be passed as a
+    parameter of the Walk command. If one command is written in the ini file
+    and another is passed to the Walk command, the inifile one is
+    overwritten by the parameter
+    If you want a result to be written in the outfile, this result may be
+    written in a register (cf help)
+  . the name of the outfile
+You've got a complete example of ini file (example.ini) that can be used to
+see how this plugin reacts. You just have to modify <SourceDir> and
+<OutFile> parameter.
+Other iniFile examples have been put in the package :
+. One is to generate a tag file with the names of the files found (exTagGen)
+. Another is to generate a file to prepare a syntax file to color the names
+  of the files found (to be used after exTagGen) (exColTagGen)
+  This is not very useful for source files but may be interesting to manage
+  simple text files with cross references
+. The last is to generate a directory tree (good for CDs' TOC) (exTreeGen)
+
+Features
+WGoIniDir     : Change the current dir to the inifiles dir. This is to ease
+                manipulation of inifiles
+WSetIniFile   : Initialise the inifile global variable
+WAddIniFile   : Add the filename passed to the inifile global variable
+WEditIniFile  : edits the inifile which name in passed. If this file is
+                empty, it is initialized with the content of "skeleton.ini"
+
+Walk          : launch the action, taking the inifiles wich names are
+                written in the inifile global variable. Walk accepts an optional
+                parameter that contains a vim command to be applied on the
+                files found. A powerful way of using this is to define
+                user-commands (:help user-commands)
+
+There is other ways to launch the walk operation : you can call the walk
+function that way :
+:call Walk(cmd,inifile)
+All the arguments must be provided (with no completion).
+:call Walk("",iniFile)
+You can write more than one ini files in the "i" register and type
+:call Walk("","") or
+:call Walk(cmd,"")
+
+Note : if you use the windows way of calling directories (with \), you must
+be careful : you have to write
+:call Walk(cmd,'D:\my\directory\myIniFile.ini')
+or
+:call Walk(cmd,"D:\\my\\directory\\myIniFile.ini")
+
+Note2: This plugin may be difficult to understand at first glance. Don't hesitate to ask me if you need some more explanation...
+
+
+Advertising :
+Have you heard of this other funny script ?
+
+If you find this script  too serious, try this other one : 
+http://www.vim.org/scripts/script.php?script_id=800
+With this script you'll be able to MixCase like the best HaRÐco®É mI×CaSE mAs+êR and make your coding very new style ;-)
