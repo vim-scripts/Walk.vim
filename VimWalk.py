@@ -28,7 +28,7 @@ class VimWalk:
                     vim.command("silent " + arg[2])
                 else:
                     vim.command('let @o="' + string.replace(dirname,"\\","\\\\") + "\\\\" + name + '\n"')
-                if vim.eval("@o") != "":
+                if vim.eval("@o") != "" and arg[1] != "":
                     fo=open(arg[1],'a')
                     fo.write(vim.eval("@o"))
                     fo.close()

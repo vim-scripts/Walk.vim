@@ -1,9 +1,10 @@
-" File:  "VimWalk.vim" Last modified : 2003/10/20 11:05:36 .
+" File:  "VimWalk.vim" Last modified : 2003/10/22 11:05:36 .
 " Author: Jean-Christophe Clavier (jcclavier@free.Fr)
-" Version: 0.1
+" Version: 0.3
 "
 " This plugin permits to visit a set of directory trees, filter the files with
 " a wildcard and apply a VIM command to the files found.
+" It is based on the python os.path.walk from where it takes its name
 "
 " If some informations have to be written in an out file, simply write these
 " informations in the "o" register during the VIM command to apply
@@ -24,6 +25,40 @@
 " time one want to deal with a particular set of directories)
 "
 " If no command is provided to Walk, the outfile contains the file list
+"
+" HOW TO USE THIS PLUGIN
+"
+" To pass arguments, you can set the values of the registers mentionned
+" directly. Then, you can type
+" :Walk Command
+"
+" If you don't want to write directly in the registers, you also have some
+" commands to write in the registers :
+" :WSetRootDir /the/first/root/directory
+"   will write the directory in the "d" register
+" :WAddRootDir /another/root/directory
+"   will add the directory to the "d" register (preceded by an "\n")
+" :WSetWildCard \.txt
+"   will write the wildcard provided (here : "\.txt") in the "w" register. The
+"   wildcard is to be a python regular expression (which are nearly the same as
+"   vim's)
+" :WSetOutFile /complete/path/file.txt
+"   will write the outfile in the "f" register
+" These commands provide autocompletion
+"
+" Finally, there is another way to launch the walk operation : you can call
+" the walk function that way :
+" :call Walk(cmd,rootdir,wildcard,outfile)
+" All the arguments must be provided (with no completion).
+" If the registers are already filled and you don't want to replace their
+" values, call the funtion walk with "" in the right place. For example :
+" :call Walk(cmd,rootdir,"","")
+"
+" Note : if you use the windows way of calling directories (with \), you must
+" be careful : you have to write
+" :call Walk(cmd,'D:\my\root\directory',"wc",'C:\my\directory\myFile.txt')
+" or
+" :call Walk(cmd,"D:\\my\\root\\directory","wc","C:\\my\\directory\\myFile.txt")
 "
 " Installation
 " Warning : This plugin uses Python.
@@ -48,9 +83,20 @@ set cpo&vim
 
 
 if !exists(':Walk')
-    command -complete=command -nargs=? Walk call s:Walk(<f-args>)
+    command -complete=command -nargs=? Walk call s:CmdWalk(<f-args>)
 endif
-
+if !exists(':WSetRootDir')
+    command -complete=dir -nargs=1 WSetRootDir call s:WSetRootDir(<f-args>)
+endif
+if !exists(':WAddRootDir')
+    command -complete=dir -nargs=1 WAddRootDir call s:WAddRootDir(<f-args>)
+endif
+if !exists(':WSetWildCard')
+    command -nargs=1 WSetWildCard call s:WSetWildCard(<f-args>)
+endif
+if !exists(':WSetOutFile')
+    command -complete=file -nargs=1 WSetOutFile call s:WSetOutFile(<f-args>)
+endif
 if !exists(':WkTest')
     command WkTest call s:WkTest()
 endif
@@ -59,7 +105,23 @@ function! s:WkTest()
     norm ggV"oy
 endfunction
 
-function! s:Walk(...)
+function! s:WSetRootDir(...)
+    let @d=a:1
+endfunction
+
+function! s:WAddRootDir(...)
+    let @D="\n" . a:1
+endfunction
+
+function! s:WSetWildCard(...)
+    let @w=a:1
+endfunction
+
+function! s:WSetOutFile(...)
+    let @f=a:1
+endfunction
+
+function! Walk(cmd, rootDir, wildCard, outFile)
     " Calls the Python function that visits a directory tree and applies the
     " VIM command passed to the files filtered by the wildcard
     " Roots directories to visit are written in th "d" register. If you have
@@ -69,16 +131,37 @@ function! s:Walk(...)
     "       "f" register
 
     python from VimWalk import *
-    " Default value
-    if @w == ""
-        let @w = "."
+    if a:rootDir != ""
+        let @d=substitute(a:rootDir,"\\","\\\\","")
     endif
-    if a:0 == 1
-        python argmt = vim.eval("a:1")
+    if a:wildCard != ""
+        let @w=a:wildCard
     else
-        python argmt = ''
+        if @w == ""
+            let @w="."
+        endif
     endif
+    if a:outFile != ""
+        let @f=substitute(a:outFile,"\\","\\\\","")
+    endif
+    split
+    python argmt = vim.eval("a:cmd")
     python vw=VimWalk(argmt)
+    q
+endfunction
+
+function! s:CmdWalk(...)
+    if a:0 >= 1
+        let s:i = 1
+        let s:arg = ""
+        while s:i <= a:0
+            exe "let s:arg = a:" . s:i
+            let s:i = s:i + 1
+        endwhile
+        call Walk(s:arg,"","","")
+    else
+        call Walk("","","","")
+    endif
 endfunction
 
 " restore 'cpo'
