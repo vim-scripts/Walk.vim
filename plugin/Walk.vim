@@ -1,7 +1,7 @@
 " File:  "Walk.vim" 
-" Last Change: 2003/11/21 15:42:08 .
+" Last Change: 2003/11/24 16:49:37 .
 " Author: Jean-Christophe Clavier <jcclavier{at}free.fr>
-" Version: 0.5
+" Version: 0.7
 "
 " This plugin intends to provide facilities to manage sets of files. For
 " example :
@@ -129,8 +129,8 @@ if !exists(':WGoIniDir')
 endif
 
 function! s:WEditIniFile(...)
-    let @i=$WALKINIDIR . "/" . a:1
-    exe "e " . @i
+    let g:walkIniFiles=$WALKINIDIR . "/" . a:1
+    exe "e " . g:walkIniFiles
     if line("$")==1
         exe "read " . $WALKINIDIR . "/skeleton.ini"
     endif
@@ -138,11 +138,15 @@ function! s:WEditIniFile(...)
 endfunction
 
 function! s:WSetIniFile(...)
-    let @i=$WALKINIDIR . "/" . a:1
+    let g:walkIniFiles=$WALKINIDIR . "/" . a:1
 endfunction
 
 function! s:WAddIniFile(...)
-    let @I="\n" . $WALKINIDIR . "/" . a:1
+    if !exists('g:walkIniFiles')
+        let g:walkIniFiles=$WALKINIDIR . "/" . a:1
+    else
+        let g:walkIniFiles=g:walkIniFiles . "\n" . $WALKINIDIR . "/" . a:1
+    endif
 endfunction
 
 function! Walk(cmd, iniFile)
@@ -154,7 +158,7 @@ function! Walk(cmd, iniFile)
     if a:iniFile != ""
         let s:iniFile=substitute(a:iniFile,"\\","\\\\","")
     else
-        let s:iniFile=substitute(@i,"\\","\\\\","")
+        let s:iniFile=substitute(g:walkIniFiles,"\\","\\\\","")
     endif
     split
 python << EOS
@@ -171,7 +175,7 @@ function! s:CmdWalk(...)
         let s:i = 1
         let s:arg = ""
         while s:i <= a:0
-            exe "let s:arg = s:arg . ' ' . a:" . s:i
+            let s:arg = s:arg . ' ' . a:{s:i}
             let s:i = s:i + 1
         endwhile
         call Walk(s:arg,"")

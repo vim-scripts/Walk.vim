@@ -1,0 +1,308 @@
+*walk.txt*		walk			Last Change: 2003/11/24 16:59:55 .
+
+Author: Jean-Christophe Clavier <jcclavier{at}free.fr>
+
+walk								*walk*
+
+0. Introduction					|walk_intro|
+1. Usage					|walk_usage|
+1.1 use of the ini file				|walk_ini|
+1.2 Description of the ini file			|walk_descIni|
+1.2.1 Select Parameters				|SelectPrm|
+1.2.2 Out arguments				|OutArgs|
+1.2.3 Out File Description			|OutFile|
+1.2.4 Complete Skeleton				|skeleton|
+1.3 Commands provided				|walk_commands|
+2. Installation					|walk_install|
+
+==============================================================================
+
+0. Introduction							*walk_intro*
+
+This plugin intends to provide facilities to manage sets of files. For
+example:
+. to create files from visited directory trees and files
+. to apply Vim commands on opened files
+In fact, it autorizes files and dirs manipulation in many ways
+
+With this script, it is easy to create
+. tag files (when your language is not supported by ctags),
+. files containing directory trees (may be interesting to create TOCs for CDs)
+
+Please, feel free to send me any comment as this plugin is very useful for me
+but its use may be a little disconcerting as it uses sort of ini files.
+
+I choosed to use ini files to be able to use many parameters and store these
+to replay the treatment as many time as i want
+
+==============================================================================
+
+1. Usage							*walk_usage*
+
+==============================================================================
+1.1 Use of the ini file						*walk_ini*
+
+In the ini file, you can specify
+. a set of root dirs which trees will be visited. For Each root dir, you can
+  define other parameters you estimate useful
+. Parameters that contain strings to be written in the outfile :
+  . at begining and end of the file (can be connect string for command
+    files)
+  . entering and going out the root dirs
+  . entering and going out the visited dirs
+  . before and after the files found
+  These parameters can contain vim commands (between {{...}}) so you can do
+  whatever you want with the file names
+. You also have parameters that define
+  . a wildcard to filter the files
+  . a vim command to apply to the files found
+    This command may be written in the iniFile but may also be passed as a
+    parameter of the Walk command. If one command is written in the ini file
+    and another is passed to the Walk command, the inifile one is
+    overwritten by the parameter
+    If you want a result to be written in the outfile, this result may be
+    written in the "o" register
+  . the name of the outfile
+You've got a complete example of ini file (example.ini) that can be used to
+see how this plugin reacts. You just have to modify <SourceDir> and
+<OutFile> parameter.
+Other iniFile examples have been put in the package :
+. One is to generate a tag file with the names of the files found (exTagGen)
+. Another is to generate a file to prepare a syntax file to color the names
+  of the files found (to be used after exTagGen) (exColTagGen)
+  This is not very useful for source files but may be interesting to manage
+  simple text files with cross references
+. The last is to generate a directory tree (good for CDs' TOC) (exTreeGen)
+
+The name of the ini files to use is to be stocked in the g:walkIniFiles global
+variable. You can put more than one file in the variable. They will all be
+used.
+
+Note : The "o" register is used by this plugin
+
+==============================================================================
+1.2 Description of the ini file				*walk_descIni*
+
+Here is a complete description of the parameters found in the ini file
+The format of the ini file is XML. I wanted to try to use XML as I don't
+usually use it. So, il you have remarks concerning my use of XML (file
+FicIni.py) they are welcome.
+
+You have 4 main groups of parameters
+. The select parameters (root dirs and wild cards)
+. Those that describe what you want to write in the out files
+. Those that describe the outfiles
+. Those that can't be classified in these 3 groups
+
+==============================================================================
+1.2.1 Select Parameters			*RootDirs* *WildCard* *SelectPrm*
+
+Here, you've got a list of parameters giving at least the name of the root
+dirs
+<RootDirs type="lst">
+    <SourceDir>RootDir1</SourceDir>
+    <SourceDir>RootDir2</SourceDir>
+    <SourceDir>RootDir3</SourceDir>
+</RootDirs>
+
+You can add as many other parameters as you want, linked to the SourceDirs.
+The name of these parameters is of your choice
+<RootDirs type="lst">
+    <SourceDir>RootDir1</SourceDir><DestDir>myDestDir1</DestDir><otherParam>anotherParameter1</otherParam>
+    <SourceDir>RootDir2</SourceDir><DestDir>myDestDir2</DestDir><otherParam>anotherParameter2</otherParam>
+    <SourceDir>RootDir3</SourceDir><DestDir>myDestDir3</DestDir><otherParam>anotherParameter3</otherParam>
+</RootDirs>
+
+All the directory trees unders these "root dirs" will be described. and all
+the file found will be able to be treated.
+
+You can filter the files with the <WildCard> parameter which syntax is
+<WildCard type="elt">
+\.vim$
+</WildCard>
+
+Note : The wildcard uses the python regexp syntax which is mainly the same as
+wim's
+
+==============================================================================
+1.2.2 Out arguments		*ArgPagePre* *ArgPagePost* *ArgRootDirPre* *ArgRootDirPost*
+				*ArgSubDirPre* *ArgSubDirPost* *ArgFilePre* *ArgFilePost*
+				*VimFileCommand* *OutArgs*
+
+These arguments contains strings you want to write in the out file. They are
+written this way :
+
+<ArgPagePre type="elt">
+The string you want to write in the outfile
+</ArgPagePre>
+
+If you want to write the name of arguments defined in the |RootDirs|
+paragraph, you have to use this syntax : >
+	[[RootDirs.SourceDir]]
+The use of you own parameters is the same : >
+	[[RootDirs.otherParam]]
+
+You can also apply vim commands on the string you want to write. the syntax
+is : >
+	{{substitute("[[File]]","vim","txt","")}}
+This will rename the files.vim in files.txt
+
+There is a couple of buildin parameters to write the name of the visited dir
+([[SubDir]]) and the name of the current file ([[File]])
+
+Here is the description of where each parameter is to be written >
+	ArgPagePre	:	At the beginning of the out file
+	ArgPagePost	:	At the end of the out file
+	ArgRootDirPre	:	Entering a root dir
+	ArgRootDirPost	:	Quitting a root dir
+	ArgSubDirPre	:	Entering a sub dir
+	ArgSubDirPost	:	Quitting a sub dir
+	ArgFilePre	:	Before the file treatment
+	ArgFilePost	:	After the file treatment
+
+You can open every file that match the wildcard to play vim commands on them.
+This command is contained in the |VimFileCommand| parameter. It's syntax is :
+<VimFileCommand type="elt">
+vim command
+</VimFileCommand>
+
+If you want to write in the out file from your command, you can use registers
+as described in the |OutFile| parameter.
+
+==============================================================================
+1.2.3 Out File Description		*OutFile* *OutFileCommand*
+
+The OutFile parameter let you define a list of out files with the following
+syntax :
+<OutFile type="lst">
+    <Name></Name><Mode></Mode><Register></Register>
+    <Name></Name><Mode></Mode><Register></Register>
+</OutFile> >
+	Name	:	The name of the out file
+	Mode	:	The writing mode (w(rite) or a(ppend), if you want to
+			chain more than one walk operation using the same
+			outfile)
+	register :	This is the name of a vim register. If you put text in
+			this register in the |VimFileCommand|, it will be
+			written in this out File
+<
+Note :
+|ArgPagePre|, |ArgPagePost|, |ArgRootDirPre|, |ArgRootDirPost|,
+|ArgSubDirPre|, |ArgSubDirPost|, |ArgFilePre|, |ArgFilePost| parameters are
+written in the first Out File of the list only.
+
+A vim command can also be applied on this first Out File with the following
+parameter.
+
+<OutFileCommand type="elt">
+</OutFileCommand>
+
+==============================================================================
+1.2.4 Complete Skeleton				*skeleton*
+
+Here is the skeleton of a complete ini file
+
+<?xml version="1.0" encoding="Latin-1"?>
+<Parameters>
+<RootDirs type="lst">
+    <SourceDir></SourceDir>
+</RootDirs>
+<ArgPagePre type="elt" comment="To be written at the beginning of the outfile">
+</ArgPagePre>
+<ArgPagePost type="elt" comment="To be written at the end of the out file">
+</ArgPagePost>
+<ArgRootDirPre type="elt" comment="To be written for each root dir before visiting it">
+</ArgRootDirPre>
+<ArgRootDirPost type="elt" comment="To be written for each root dir after having visited it">
+</ArgRootDirPost>
+<ArgSubDirPre type="elt" comment="To be written for each sub dir before visiting it">
+</ArgSubDirPre>
+<ArgSubDirPost type="elt" comment="To be written for each sub dir after having visited it">
+</ArgSubDirPost>
+<ArgFilePre type="elt" comment="To be written for each file before visiting it">
+</ArgFilePre>
+<ArgFilePost type="elt" comment="To be written for each file after having visited it">
+</ArgFilePost>
+<WildCard type="elt">
+.
+</WildCard>
+<OutFile type="lst" comment="Name = name of the outfile
+    Mode = w(rite) or a(ppend)
+    Register = register used to store strings to write in this outfile">
+    <Name></Name><Mode></Mode><Register>o</Register>
+</OutFile>
+<OutFileCommand type="elt" comment="Command to be executed on the out file when it is opened">
+</OutFileCommand>
+<VimFileCommand type="elt" comment="Command to be executed on each opened file">
+</VimFileCommand>
+</Parameters>
+
+
+==============================================================================
+1.3 Commands provided					*walk_commands*
+
+Command summary		Action~
+:WGoIniDir		Change the current dir to the inifiles dir. This is to
+			ease manipulation of inifiles
+WSetIniFile		Initialise the g:walkIniFiles global variable with the
+			filename passed
+WAddIniFile		Add the filename passed to the g:walkIniFiles global
+			variable
+WEditIniFile		edits the inifile which name in passed. If this file
+			is empty, it is initialized with the content of
+			"skeleton.ini"
+
+Walk			launch the action, taking the inifiles wich names are
+			written in the g:walkIniFiles global variable. Walk
+			accepts an optional parameter that contains a vim
+			command to be applied on the files found. A powerful
+			way of using this is to define user-commands (:help
+			user-commands).
+Note :	If you provide a vim command, it overrides the one in the ini file
+
+There is other ways to launch the walk operation : you can call the walk
+function that way : >
+	:call Walk(cmd,inifile)
+All the arguments must be provided (with no completion). >
+	:call Walk("",iniFile)
+You can write more than one ini files in the g:walkIniFiles global variable
+and type >
+	:call Walk("","")
+or >
+	:call Walk(cmd,"")
+
+Note : if you use the windows way of calling directories (with \), you must
+be careful : you have to write >
+	:call Walk(cmd,'D:\my\directory\myIniFile.ini')
+or >
+	:call Walk(cmd,"D:\\my\\directory\\myIniFile.ini")
+
+==============================================================================
+2. Installation						*walk_install*
+
+Note : this plugin uses python
+
+It is made of four files : Walk.vim, Walk.py, FicIni.py and walk.txt.
+The .vim file is to be dropped in the plugins directory, the .txt in the doc
+directory and the .py in a directory declared in the python path by a little >
+	let $PYTHONPATH=$PYTHONPATH . "/MyDirectory/Python"
+in your .vimrc
+
+you also have an .ini file examples (example.ini, exTagGen.ini,
+exColTagGen.ini and exTreeGen) and a skeleton for .ini files (skeleton.ini).
+These files are to be dropped in an inifiles directory (you decide).
+Skeleton.ini is used by the WEditIniFile command.
+To use the examples, you'll have to edit them to change the <SourceDir> and
+the <OutFile> parameter
+
+To ease the edition of the ini files, you have to init another variable in
+your .vimrc ($WALKINIDIR): >
+	let $WALKINIDIR = "MyDirectory/iniFiles"
+
+To init the help tags, start Vim and do either
+:helptags ~/.vim/doc (for unix)
+or
+:helptags ~\vimfiles\doc (for MSWindows)
+to rebuild the tags file. Do ":help add-local-help" for more details.
+
+vim:tw=78:ts=8:ft=help:norl:noet:
