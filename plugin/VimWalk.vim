@@ -1,6 +1,6 @@
 " File:  "VimWalk.vim" Last modified : 2003/10/22 11:05:36 .
 " Author: Jean-Christophe Clavier (jcclavier@free.Fr)
-" Version: 0.3
+" Version: 0.4
 "
 " This plugin permits to visit a set of directory trees, filter the files with
 " a wildcard and apply a VIM command to the files found.
@@ -147,7 +147,7 @@ function! Walk(cmd, rootDir, wildCard, outFile)
     split
     python argmt = vim.eval("a:cmd")
     python vw=VimWalk(argmt)
-    q
+    exe "e " . @f
 endfunction
 
 function! s:CmdWalk(...)
