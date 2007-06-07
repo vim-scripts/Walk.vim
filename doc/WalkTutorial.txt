@@ -1,0 +1,363 @@
+*WalkTutorial.txt*		Tutorial for the walk plugin			Last Change: 2007/06/04 16:03:37 .
+
+Author: Jean-Christophe Clavier <jcclavier{at}free.fr>
+
+WalkTutorial							*WalkTutorial*
+
+==============================================================================
+
+0. Introduction							*wt_intro*
+
+The walk plugin intends to provide facilities to manage sets of files. For
+example:
+. to create files from visited directory trees and files
+. to apply Vim commands on opened files
+
+In this tutorial we will learn how to create
+. a simple tag files to open text files in vim,
+. a little more complex tag file to get the procedures declaration (if ctags
+  doesn't support your language and you don't understand (like me) how to
+  custom ctags)
+. a directory trees (may be interesting to create TOCs for CDs)
+. a vim menu representing a set of directories to access your text files
+
+In fact, the most part of this tutorial is to learn how to use the .ini file.
+To see the complete description of an ini file, go to |walk_descIni|
+
+Please, feel free to send me any comment as this plugin is very useful for me
+but its use may be a little disconcerting as it uses sort of ini files.
+
+I choosed to use ini files to be able to execute rather complicated process,
+use many parameters and store these to replay the treatment as many time as i
+want. For simpler process, the script "dirdo.vim" may be more appropriate.
+
+==============================================================================
+
+1. How to use this plugin efficiently				*wt_usage*
+
+The classical use of this plugin is : >
+	define an ini file
+pass the commands >
+	WGoIniDir
+	WSetIniFile MyIniFile.ini
+	Walk
+
+As I use this plugin to do jobs i often have to redo, i have a plugin where i
+define all my commands :
+--------------------------------------------- >
+    command! WkCmdNbOne call s:WkCmdNbOne()
+    command! WkCmdNbTwo call s:WkCmdNbTwo()
+
+    function! s:WkCmdNbOne()
+	WGoIniDir
+	WSetIniFile WkCmdNbOne.ini
+	Walk
+    endfunction
+
+    function! s:WkCmdNbTwo()
+	WGoIniDir
+	WSetIniFile WkCmdNbTwo.ini
+	Walk
+    endfunction
+
+==============================================================================
+
+2. The simple sample : a tag file			*wt_simpleTagFile*
+
+In this paragraph, we will generate a simple tag file that will allow to open
+files using the tag jumps.
+Let's imagine we have a big set of python files and we want to open them
+easily. The aim is to create a file with lines like :
+
+fileName	TheFileLocation\fileName.py	/\%^
+
+The ini file will be like : >
+
+    <?xml version="1.0" encoding="utf-8"?>
+    <Parameters>
+    <RootDirs type="lst">
+	<SourceDir>c:\The\Root\Path\of\my\python\src</SourceDir>
+    </RootDirs>
+    <ArgFilePre type="elt" comment="To be written for each File before visiting it">
+    {{substitute("[[File]]",".py","","")}}	[[SubDir]]\[[File]]	/\%^
+    </ArgFilePre>
+    <WildCard type="elt" comment="To filter the files. This uses the python regexp syntax.">
+    \.py$
+    </WildCard>
+    <OutFile type="lst">
+	<Name>C:\The\Tag\File\Path\tags</Name><Mode>w</Mode>
+    </OutFile>
+    </Parameters>
+
+Let's comment this
+The first parameter >
+    <RootDirs type="lst">
+	<SourceDir>c:\The\Root\Path\of\my\python\src</SourceDir>
+    </RootDirs>
+This is the definition of the root directory of my python files tree.  We may
+add other "SourceDir" if we have more than one project and we want to generate
+on tag file for all of them >
+    <RootDirs type="lst">
+	<SourceDir>c:\The\First\Root\Path\of\my\python\src</SourceDir>
+	<SourceDir>c:\The\Second\Root\Path\of\my\python\src</SourceDir>
+	<SourceDir>c:\The\Third\Root\Path\of\my\python\src</SourceDir>
+    </RootDirs>
+
+The second parameter >
+    <ArgFilePre type="elt" comment="To be written for each File before visiting it">
+    {{substitute("[[File]]",".py","","")}}	[[SubDir]]\[[File]]	/\%^
+    </ArgFilePre>
+
+For each file, we create the appropriate line 
+    {{substitute("[[File]]",".py","","")}}  => will write the filename without
+					    extension
+    a TAB char
+    [[SubDir]]\[[File]]	=> will write the filename with his complete path
+    a TAB char
+    /\%^	=> will go to the begining of the file.
+
+Then comes >
+    <WildCard type="elt" comment="To filter the files. This uses the python regexp syntax.">
+    \.py$
+    </WildCard>
+We only want .py files >
+
+Finaly
+    <OutFile type="lst">
+	<Name>C:\The\Tag\File\Path\tags</Name><Mode>w</Mode>
+    </OutFile>
+This is the definition of the generated tag file
+
+NOTE : you'll need to sort your file after it is generated
+
+==============================================================================
+
+3. The just a little less simple sample : another tag file *wt_complexTagFile*
+
+Here we'll try to generate tags with the names of the functions.
+The difference is that we need to open the file and look for the definitions
+of the functions.
+This is done by a vim command executed on the opened file.
+To store the result of the command, we use the vim registers.
+We can specifie the register we want to use in the outfile parameter : >
+    <OutFile type="lst">
+	<Name>C:\The\Tag\File\Path\tags</Name><Mode>w</Mode><Register>o</Register>
+    </OutFile>
+
+The command is defined in the VimFileCommand parameter : >
+    <VimFileCommand type="elt">
+    g/\s*def\s/let @O=matchstr(getline("."),"\\(def \\)\\@&lt;=[^ (]*") . "\t" .  expand("%:p"). "\t/" . matchstr(getline("."),"\\(def \\)\\@&lt;=[^ (]*") .  "\n"
+    </VimFileCommand>
+
+NOTE: This long line is to be kept that way. I have not written any way to
+cut these long lines. Sorry about this for those who are bothered with that.
+
+this will replace the <ArgFilePre type="elt">...</ArgFilePre> block
+Let's quickly explain this command (for more detail see |pattern| and
+|functions|) :
+g/\s*def\s/ 	: look for all lines begining by the keyword "def"
+let @O=		: On these line, whe add to the register "o" the result of the
+		  following command
+matchstr(getline("."),"\\(def \\)\\@&lt;=[^ (]*")	: select the word between 
+		  "def " and a space or a "(" (|/\@<=|)
+	NOTE : be careful : you are in an xml file, so you have to replace "<"
+		with "&lt;", "&" with "&amp;"...
+expand("%:p")	: the file name with complete path
+matchstr(...)	: same as the first one
+
+the new ini file will be : >
+    <?xml version="1.0" encoding="utf-8"?>
+    <Parameters>
+    <RootDirs type="lst">
+	<SourceDir>c:\The\Root\Path\of\my\python\src</SourceDir>
+    </RootDirs>
+    <VimFileCommand type="elt">
+    g/\s*def\s/let @O=matchstr(getline("."),"\\(def \\)\\@&lt;=[^ (]*") . "\t" .  expand("%:p"). "\t/" . matchstr(getline("."),"\\(def \\)\\@&lt;=[^ (]*") .  "\n"
+    </VimFileCommand>
+    <WildCard type="elt" comment="To filter the files. This uses the python regexp syntax.">
+    .py$
+    </WildCard>
+    <OutFile type="lst">
+	<Name>C:\The\Tag\File\Path\tags</Name><Mode>w</Mode><Register>o</Register>
+    </OutFile>
+    </Parameters>
+
+Note : 	If you whant to use a more complex vim user-function, it is possible
+	to define it in your plugin and call if from the VimFileCommand
+	parameter : >
+    <VimFileCommand type="elt">
+    MyVimUserFunction
+    </VimFileCommand>
+
+NOTE : you'll need to sort your file after it is generated
+==============================================================================
+
+4. A not very complex but sometimes useful example :
+	building a CD TOC				*wt_cdTocIniFile*
+
+If you burn CDs, this sample is for you : if you don't write the Table Of
+Content of your CDs, you quickly don't know which CD contains a particular
+document. This sample gives you a mean to create a TOC.
+
+First of all, the ini file : >
+
+    <?xml version="1.0" encoding="Latin-1"?>
+    <Parameters>
+    <RootDirs type="lst">
+	<SourceDir>D:\</SourceDir><Title>Today's backup</Title>
+    </RootDirs>
+    <ArgRootDirPre type="elt" comment="To be written for each root dir before visiting it">
+    [[RootDirs.Title]]
+    </ArgRootDirPre>
+
+    <ArgSubDirPre type="elt" comment="To be written for each sub dir before visiting it">
+    {{substitute(substitute(substitute("\[[SubDir]]",substitute("[[RootDirs.SourceDir]]","\\","\\\\","g"),"",""),"[^\\]*[\\]"," |","g")," |\([^|]*$\)","\\\1","")}}
+    </ArgSubDirPre>
+
+    <ArgFilePre type="elt" comment="To be written for each File before visiting it">
+    {{substitute(substitute("[[SubDir]]\",substitute("[[RootDirs.SourceDir]]","\\","\\\\","g"),"",""),"[^\\]*[\\]"," |","g")}}[[File]]
+    </ArgFilePre>
+
+    <WildCard type="elt" comment="To filter the files. This uses the python regexp syntax.">
+    \.
+    </WildCard>
+
+    <OutFile type="lst" comment="Name = name of the outfile
+	Mode = w(rite) or a(ppend)
+	Register = register used to store strings to write in this outfile">
+	<Name>C:\The\TOC\Path\TOC.txt</Name><Mode>w</Mode>
+    </OutFile>
+    </Parameters>
+
+Let's explain some details >
+    <RootDirs type="lst">
+	<SourceDir>D:\</SourceDir><Title>Today's backup</Title>
+    </RootDirs>
+    <ArgRootDirPre type="elt" comment="To be written for each root dir before visiting it">
+    [[RootDirs.Title]]
+    </ArgRootDirPre>
+
+As you can see, I just introduced a new tag : <Title></Title>. In fact, it may
+have been <anything></anything>. In the "RootDir" block, the only fixed tag is
+"SourceDir" which is the root directory to be visited. The "title" tag is just
+here to be mentionned later (here, in the "ArgRootDirPre" block)
+
+==============================================================================
+
+5. A last example :
+	building a VIM menu				*wt_vimMenuIniFile*
+
+Here is the whole ini file : >
+    <?xml version="1.0" encoding="iso-8859-1"?>
+    <Parameters aim="This ini file is to generate file describing the directory tree"
+	comment="">
+    <RootDirs type="lst" comment="List of directory trees to be visited
+	SourceDir is mandatory, 
+	SubMenu  creates an item in the menu bar (default = MyNotes)
+	SubEntry creates an entry in the Menu Item ">
+	<SourceDir>a/first/dir/where/I/have/administrative/notes</SourceDir><SubMenu>Administrative</SubMenu>
+	<SourceDir>a/dir/where/I/have/project/notes</SourceDir><SubMenu>Project.Notes</SubMenu>
+	<SourceDir>a/dir/where/I/put/project/sources</SourceDir><SubMenu>Project.sources\ Communs</SubMenu>
+    </RootDirs>
+    <WildCard type="elt" comment="To filter the files. This uses the python regexp syntax.">
+    \.txt$|\.vim$|\.xml$|\.ini$|\.sql$|\.py$|\.php$|\.html$|\.js$|\.log$|\.sgi$|\.csv$
+    </WildCard>
+    <ArgRootDirPre type="elt" comment="To be written for each root dir before visiting it">
+    try
+	:unmenu [[RootDirs.SubMenu]]
+    catch /.*/
+	let s:bidon = "bidon"
+    endtry
+    </ArgRootDirPre>
+    <ArgSubDirPre type="elt" comment="To be written for each Sub dir before visiting it">
+    :amenu &amp;[[RootDirs.SubMenu]]{{substitute(substitute("[[SubDir]]\",substitute("[[RootDirs.SourceDir]]","\\","\\\\","g"),"",""),"\\",".","g")}}===\ Explorer\ ===&lt;Tab> :!start explorer.exe /n,/e, "[[SubDir]]"&lt;CR>
+    </ArgSubDirPre>
+    <ArgFilePre type="elt" comment="To be written for each File before visiting it">
+    :amenu &amp;[[RootDirs.SubMenu]]{{substitute(substitute("[[SubDir]]\",substitute("[[RootDirs.SourceDir]]","\\","\\\\","g"),"",""),"\\",".","g")}}{{substitute("[[File]]","\.","\\ ","")}}&lt;Tab> :e {{substitute("[[SubDir]]\"," ","\\ ","g")}}[[File]]&lt;CR>
+    </ArgFilePre>
+    <OutFile type="lst" comment="Name = name of the outfile
+	Mode = w(rite) or a(ppend)
+	Register = register used to store strings to write in this outfile
+	Edit = Is the outfile to edit at the end of the process">
+	<Name>C:\Mes documents\Utils\VimHome\plugin\JiceMenu.vim</Name><Mode>w</Mode><Register>o</Register><Edit>N</Edit>
+    </OutFile>
+    </Parameters>
+
+Everything here was already explained in the preceeding chapter but i wanted
+to give this example as it is very useful to me.
+
+==============================================================================
+
+6. Advanced feature
+	How to use python functions			*wt_pythonFunctions*
+
+This feature is not very often useful but, sometimes, it offers a way to apply
+python functions on a set of files.
+This have been used with some success to generate html files from templates
+http://www.bestplainwebpages.com/links.html
+
+As an example, we will count the .doc, .pdf and .zip files contained in a
+directory tree.
+For this, I wrote a function in the walk.py file called count (you can remove
+this funtion if you have no use of it. The plugin doesn't use it for anything
+else but i put it there for this tutorial.
+Here is the .ini file >
+
+    <?xml version="1.0" encoding="Latin-1"?>
+    <Parameters aim="This ini file is to generate file describing the directory tree (good to create
+	CDs' TOC)"
+	comment="some builtin parameters can be used in the lines to be written in the outfile.
+	[[File]] is the name of the current File
+	[[SubDir]] is the name of the current visited dir">
+    <RootDirs type="lst" comment="List of directory trees to be visited
+	    SourceDir is mandatory">
+	<SourceDir>C:\Mes documents\Etude\Documents</SourceDir>
+    </RootDirs>
+    <ArgPagePre type="elt" comment="To be written at the beginning of the outfile">
+    {{python.string.join(["Hello","world"])}}
+    </ArgPagePre>
+    <ArgRootDirPre type="elt" comment="To be written for each root dir before visiting it">
+    \[[RootDirs.SourceDir]]
+    </ArgRootDirPre>
+    <ArgSubDirPre type="elt" comment="To be written for each sub dir before visiting it">
+    {{substitute(substitute(substitute("\[[SubDir]]",substitute("[[RootDirs.SourceDir]]","\\","\\\\","g"),"",""),"[^\\]*[\\]"," |","g")," |\([^|]*$\)","\\\1","")}}	{{walk.count("[[SubDir]]", "\.pdf$", "pdf")}} - {{walk.count("[[SubDir]]", "\.doc$", "doc")}} - {{walk.count("[[SubDir]]", "\.zip$", "zip")}}
+    </ArgSubDirPre>
+    <WildCard type="elt" comment="To filter the files. This uses the python regexp syntax.">
+    \.
+    </WildCard>
+    <OutFile type="lst" comment="Name = name of the outfile
+	Mode = w(rite) or a(ppend)
+	Register = register used to store strings to write in this outfile">
+	<Name>C:\Mes documents\Etude\Documents\TDM.txt</Name><Mode>w</Mode><Register>o</Register>
+    </OutFile>
+    <OutFileCommand type="elt" comment="Command to be executed on the out file when it is opened
+	Delete empty lines in the tree">
+    g/^$/d
+    set ts=60
+    w
+    </OutFileCommand>
+    </Parameters>
+
+Let's see the details of new points : >
+    <ArgPagePre type="elt" comment="To be written at the beginning of the outfile">
+    {{python.string.join(["Hello","world"])}}
+    </ArgPagePre>
+Here, just to see how it work, i write "Hello world" at the beginning of the
+outfile. This is a very complicated way and i could have replaced
+"{{python.string.join(["Hello","world"])}}" with only "Hello world", it would
+have work the same. But here, you see how to call a python function.
+
+Here >
+    <ArgSubDirPre type="elt" comment="To be written for each sub dir before visiting it">
+    {{substitute(substitute(substitute("\[[SubDir]]",substitute("[[RootDirs.SourceDir]]","\\","\\\\","g"),"",""),"[^\\]*[\\]"," |","g")," |\([^|]*$\)","\\\1","")}}	{{walk.count("[[SubDir]]", "\.pdf$", "pdf")}} - {{walk.count("[[SubDir]]", "\.doc$", "doc")}} - {{walk.count("[[SubDir]]", "\.zip$", "zip")}}
+    </ArgSubDirPre>
+We build a line where we count the files.
+When we enter the subdir (ArgSubDirPre), we count the pdf files
+"{{walk.count("[[SubDir]]", "\.pdf$", "pdf")}}"
+
+Here, we call the function we added in the walk.py file in the walk class.
+This is the simplest but not necessarly the best choice for a good
+programming but this is now in the python domain and out of this tutorial's
+scope. I'll let you find the way you want to add these functions.
+
+vim:tw=78:ts=8:ft=help:norl:noet:

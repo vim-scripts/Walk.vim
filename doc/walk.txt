@@ -1,4 +1,4 @@
-*walk.txt*		walk			Last Change: 2003/11/24 16:59:55 .
+*walk.txt*		walk			Last Change: 2007/06/04 16:14:21 .
 
 Author: Jean-Christophe Clavier <jcclavier{at}free.fr>
 
@@ -30,10 +30,16 @@ With this script, it is easy to create
 . files containing directory trees (may be interesting to create TOCs for CDs)
 
 Please, feel free to send me any comment as this plugin is very useful for me
-but its use may be a little disconcerting as it uses sort of ini files.
+but its use may be a little disconcerting.
 
 I choosed to use ini files to be able to use many parameters and store these
-to replay the treatment as many time as i want
+to replay the treatment as many time as i want.
+This may not be very easy to use the firsts times but when your ini files are
+written, it is very powerful to create vim menus, tag files or execute
+repetitive tasks on sets of files (counting lines...)
+
+You'll find here the very basic description of this plugin's functionnalities.
+For more details, please read the tutorial (|WalkTutorial|)
 
 ==============================================================================
 
@@ -146,6 +152,20 @@ You can also apply vim commands on the string you want to write. the syntax
 is : >
 	{{substitute("[[File]]","vim","txt","")}}
 This will rename the files.vim in files.txt
+
+You also have special arguments to be able to call python functions. >
+	{{python.print("[[File]]")}}	# will write the file name on the
+					# standard output
+"python." is to be used to call normal python functions
+If you want to write more complex python functions, you can write them in the
+walk.py file and call them with
+python.self.myfunction()
+I made a shortcut for this :
+walk.myfunction()
+
+I know this is not very beautiful but this offers some interesting
+possibilities.
+
 
 There is a couple of buildin parameters to write the name of the visited dir
 ([[SubDir]]) and the name of the current file ([[File]])
@@ -282,11 +302,12 @@ or >
 
 Note : this plugin uses python
 
-It is made of four files : Walk.vim, Walk.py, FicIni.py and walk.txt.
+It is made of five files : Walk.vim, Walk.py, FicIni.py, walk.txt and
+WalkTutorial.txt.
 The .vim file is to be dropped in the plugins directory, the .txt in the doc
 directory and the .py in a directory declared in the python path by a little >
 	let $PYTHONPATH=$PYTHONPATH . "/MyDirectory/Python"
-in your .vimrc
+in your .vimrc and in your environment variables.
 
 you also have an .ini file examples (example.ini, exTagGen.ini,
 exColTagGen.ini and exTreeGen) and a skeleton for .ini files (skeleton.ini).

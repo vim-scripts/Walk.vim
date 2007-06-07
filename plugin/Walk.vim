@@ -1,7 +1,8 @@
 " File:  "Walk.vim" 
-" Last Change: 2003/11/24 16:49:37 .
+" Last Change: 2006/01/09 15:16:51 .
 " Author: Jean-Christophe Clavier <jcclavier{at}free.fr>
 " Version: 0.7
+" License: GPL (GNU Public License)
 "
 " This plugin intends to provide facilities to manage sets of files. For
 " example :
@@ -127,6 +128,9 @@ endif
 if !exists(':WGoIniDir')
     command WGoIniDir chd $WALKINIDIR
 endif
+if !exists(':WGetPrm')
+    command -nargs=+ WGetPrm call s:WGetPrm(<f-args>)
+endif
 
 function! s:WEditIniFile(...)
     let g:walkIniFiles=$WALKINIDIR . "/" . a:1
@@ -170,6 +174,31 @@ for iniFile in iniFiles:
 EOS
 endfunction
 
+function! s:WGetPrm(...)
+    " Gets a parameter from the .ini file
+    " It must be a final parameter (no list allowed).
+    " If the parameter is typed "lst", the idx must be precised
+    "
+    let s:tmp=@r
+    let s:iniFile=substitute(g:walkIniFiles,"\\","\\\\","")
+python << EOS
+from Walk import *
+iniFiles=string.split(vim.eval("s:iniFile"),"\n")
+prm=vim.eval("a:1")
+if vim.eval("a:0")=="1":
+    idx=0
+else:
+    idx=int(vim.eval("a:2"))
+for iniFile in iniFiles:
+    vw=Walk(iniFile)
+    vim.command('let @r = "' + string.replace(vw.getPrm(prm,idx),'\\','\\\\') + '"')
+EOS
+    let s:result=@r
+    let @r=s:tmp
+    echo s:result
+    return s:result
+endfunction
+
 function! s:CmdWalk(...)
     if a:0 >= 1
         let s:i = 1
@@ -178,7 +207,7 @@ function! s:CmdWalk(...)
             let s:arg = s:arg . ' ' . a:{s:i}
             let s:i = s:i + 1
         endwhile
-        call Walk(s:arg,"")
+        call Walk(a:1,"")
     else
         call Walk("","")
     endif
